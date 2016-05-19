@@ -34,15 +34,15 @@ public class WebSocket {
             if (session.isOpen()) {
             	
             	JSONObject msgAsJson = new JSONObject(msg);
-            	System.out.println(msgAsJson);
+            	System.out.println("msg received:\n\t" + msg);
             	
-            	String action = msgAsJson.getString("action");
             	int id = msgAsJson.getInt("id");
             	Trace trace = new Trace(session, last, id);
             	
-            	if (action == "subscribe") {
+            	String action = msgAsJson.getString("action");
+            	if (action.equals("subscribe")) {
             		subscribe(msgAsJson.getJSONObject("to"), trace);
-            	} else if (action == "unsubscribe") {
+            	} else if (action.equals("unsubscribe")) {
             		unsubscribe(msgAsJson.getJSONObject("from"), trace);
             	}
             	
@@ -58,7 +58,7 @@ public class WebSocket {
     }
 		
 	private void subscribe(JSONObject to, Trace trace) throws JSONException, SQLException {
-		if (to.getString("dataKind") == "config") {
+		if (to.getString("dataKind").equals("config")) {
 			subscribeToConfig(to, trace);
 		}
 	}
@@ -79,14 +79,18 @@ public class WebSocket {
 			
 			System.out.println("portletId=" + portletId + ", configName=" + configName + ", hash=" + hash);
 			
-			PreparedStatement st = connection.prepareStatement("SELECT ID_ANGULAR_CONFIG, DATA FROM ANGULAR_CONFIG WHERE ID_PAGE = ? AND NAME = ?");
+			PreparedStatement st = connection.prepareStatement("SELECT \"ID_ANGULAR_CONFIG\", \"DATA\" FROM \"ANGULAR_CONFIG\" WHERE \"ID_PAGE\" = ? AND \"NAME\" = ?");
 			st.setString(1, portletId);
 			st.setString(2, configName);
+			System.out.println(st.toString());
+			try {
 			ResultSet rs = st.executeQuery();
+			
 			while (rs.next())
 			{
 			   String rsDataRaw = rs.getString(2);
 			   JSONObject rsData = new JSONObject(rsDataRaw);
+			   System.out.println("SELECT result: " + rsDataRaw);
 			   
 			   // start composing answer (outgoing)
 			   
@@ -95,7 +99,7 @@ public class WebSocket {
 			   
 			   String rsHash = String.valueOf(rsDataRaw.hashCode());
 			   
-			   if (rsHash == hash) {
+			   if (rsHash.equals(hash)) {
 				   outgoing.put("content", "alreadyUpToDate");
 			   } else {
 				   JSONObject content = new JSONObject();
@@ -112,6 +116,10 @@ public class WebSocket {
 			   trace.sendMessage(outgoingAsAnArray);
 			}
 			rs.close();
+			} catch (SQLException e) {
+				System.out.println("SQLException");
+				e.printStackTrace();
+			}
 			st.close();
 			
 		}

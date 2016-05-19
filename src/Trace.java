@@ -22,7 +22,9 @@ public class Trace {
 			outgoing.put("id", this.id);
 			outgoing.put("content", message);
 			
-			session.getBasicRemote().sendText(outgoing.toString(), last);
+			String stringified = outgoing.toString();
+			System.out.println(stringified);
+			session.getBasicRemote().sendText(stringified, last);
 			return true;
 		} catch (JSONException | IOException e) {
 			e.printStackTrace();
