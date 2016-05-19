@@ -17,10 +17,11 @@ public class WebSocket {
 	private Connection connection = null;
 	
 	
-	WebSocket() {
+	public WebSocket() {
 		try {
-			connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/dis","postgres", "postgres");
-		} catch (SQLException e) {
+			Class.forName("org.postgresql.Driver");
+			connection = DriverManager.getConnection("jdbc:postgresql://localhost:5432/dis","editor", "password");
+		} catch (SQLException | ClassNotFoundException e) {
 			e.printStackTrace();
 		}
 		
@@ -75,6 +76,8 @@ public class WebSocket {
 			String portletId = query.getString("portletId");
 			String configName = query.getString("configName");
 			String hash = query.getString("hash");
+			
+			System.out.println("portletId=" + portletId + ", configName=" + configName + ", hash=" + hash);
 			
 			PreparedStatement st = connection.prepareStatement("SELECT ID_ANGULAR_CONFIG, DATA FROM ANGULAR_CONFIG WHERE ID_PAGE = ? AND NAME = ?");
 			st.setString(1, portletId);
