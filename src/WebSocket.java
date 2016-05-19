@@ -37,57 +37,44 @@ public class WebSocket {
             	
             	String action = msgAsJson.getString("action");
             	int id = msgAsJson.getInt("id");
+            	Trace trace = new Trace(session, last, id);
+            	
             	if (action == "subscribe") {
-            		subscribe(msgAsJson.getJSONObject("to"), id);
+            		subscribe(msgAsJson.getJSONObject("to"), trace);
             	} else if (action == "unsubscribe") {
-            		unsubscribe(msgAsJson.getJSONObject("from"), id);
+            		unsubscribe(msgAsJson.getJSONObject("from"), trace);
             	}
             	
-//                session.getBasicRemote().sendText("OK", last);
             }
             
-        } catch (IOException e) {
+        } catch (JSONException | SQLException e) {
             try {
                 session.close();
             } catch (IOException e1) {
                 // Ignore
             }
-        } catch (JSONException e) {
-        	e.printStackTrace();
-        	try {
-                session.close();
-            } catch (IOException e1) {
-            	// Ignore
-            }
-		} catch (SQLException e) {
-			e.printStackTrace();
-			try {
-                session.close();
-            } catch (IOException e1) {
-            	// Ignore
-            }
-		}
+        }
     }
 		
-	private void subscribe(JSONObject to, int id) throws JSONException, SQLException {
+	private void subscribe(JSONObject to, Trace trace) throws JSONException, SQLException {
 		if (to.getString("dataKind") == "config") {
-			subscribeToConfig(to, id);
+			subscribeToConfig(to, trace);
 		}
 	}
 	
-	private void unsubscribe(JSONObject from, int id) {
+	private void unsubscribe(JSONObject from, Trace trace) {
 		
 	}
 	
-	private void subscribeToConfig(JSONObject to, int id) throws JSONException, SQLException {
+	private void subscribeToConfig(JSONObject to, Trace trace) throws JSONException, SQLException {
 		JSONArray list = to.getJSONArray("list");
 		
 		int length = list.length();
 		for (int i = 0; i < length; i++) {
-			JSONObject item = list.getJSONObject(i);
-			String portletId = item.getString("portletId");
-			String configName = item.getString("configName");
-			String hash = item.getString("hash");
+			JSONObject query = list.getJSONObject(i);
+			String portletId = query.getString("portletId");
+			String configName = query.getString("configName");
+			String hash = query.getString("hash");
 			
 			PreparedStatement st = connection.prepareStatement("SELECT ID_ANGULAR_CONFIG, DATA FROM ANGULAR_CONFIG WHERE ID_PAGE = ? AND NAME = ?");
 			st.setString(1, portletId);
@@ -95,20 +82,31 @@ public class WebSocket {
 			ResultSet rs = st.executeQuery();
 			while (rs.next())
 			{
-//			   System.out.print("Column 1 returned ");
-//			   System.out.println(rs.getString(1));
 			   String rsDataRaw = rs.getString(2);
 			   JSONObject rsData = new JSONObject(rsDataRaw);
+			   
+			   // start composing answer (outgoing)
+			   
+			   JSONObject outgoing = new JSONObject();
+			   outgoing.put("query", query);
 			   
 			   String rsHash = String.valueOf(rsDataRaw.hashCode());
 			   
 			   if (rsHash == hash) {
-				   
-				   
+				   outgoing.put("content", "alreadyUpToDate");
+			   } else {
+				   JSONObject content = new JSONObject();
+				   content.put("DATA", rsData);
+				   content.put("HASH", rsHash);
+				   outgoing.put("content", content);
 			   }
 			   
-			   String outgoing = "";
-			   session.getBasicRemote().sendText(outgoing, last);
+			   // finish composing answer
+			   
+			   // send answer
+			   JSONArray outgoingAsAnArray = new JSONArray();
+			   outgoingAsAnArray.put(outgoing);
+			   trace.sendMessage(outgoingAsAnArray);
 			}
 			rs.close();
 			st.close();
