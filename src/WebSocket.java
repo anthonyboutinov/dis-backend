@@ -86,7 +86,8 @@ public class WebSocket {
 			try {
 			ResultSet rs = st.executeQuery();
 			
-			while (rs.next())
+			boolean rsNotEmpty = rs.next();
+			if (rsNotEmpty == true)
 			{
 			   String rsDataRaw = rs.getString(2);
 			   JSONObject rsData = new JSONObject(rsDataRaw);
@@ -114,10 +115,19 @@ public class WebSocket {
 			   JSONArray outgoingAsAnArray = new JSONArray();
 			   outgoingAsAnArray.put(outgoing);
 			   trace.sendMessage(outgoingAsAnArray);
+			   
+			} else {
+				// send answer: NO results
+				JSONObject outgoing = new JSONObject();
+				outgoing.put("query", query);
+				outgoing.put("content", "negative");
+				JSONArray outgoingAsAnArray = new JSONArray();
+				outgoingAsAnArray.put(outgoing);
+				trace.sendMessage(outgoingAsAnArray);
 			}
 			rs.close();
 			} catch (SQLException e) {
-				System.out.println("SQLException");
+				System.out.println("subscribeToConfig: SQLException");
 				e.printStackTrace();
 			}
 			st.close();
