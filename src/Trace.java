@@ -23,7 +23,7 @@ public class Trace {
 			outgoing.put("content", message);
 			
 			String stringified = outgoing.toString();
-			System.out.println(stringified);
+			System.out.println("Outgoing message:\n\t" + stringified);
 			session.getBasicRemote().sendText(stringified, last);
 			return true;
 		} catch (JSONException | IOException e) {
