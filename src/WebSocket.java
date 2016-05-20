@@ -28,7 +28,7 @@ public class WebSocket {
 	}
 
 	@OnMessage
-    public void main(Session session, String msg, boolean last) {
+    public void onMessage(Session session, String msg, boolean last) {
         try {
         	System.out.println(session);
             if (session.isOpen()) {
