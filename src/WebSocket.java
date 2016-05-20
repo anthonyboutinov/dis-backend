@@ -49,9 +49,11 @@ public class WebSocket {
             }
             
         } catch (JSONException | SQLException e) {
+        	e.printStackTrace();
             try {
                 session.close();
             } catch (IOException e1) {
+            	e1.printStackTrace();
                 // Ignore
             }
         }
@@ -75,7 +77,7 @@ public class WebSocket {
 			JSONObject query = list.getJSONObject(i);
 			String portletId = query.getString("portletId");
 			String configName = query.getString("configName");
-			String hash = query.getString("hash");
+			String hash = query.has("hash") ? query.getString("hash") : null;
 			
 			System.out.println("portletId=" + portletId + ", configName=" + configName + ", hash=" + hash);
 			
@@ -84,48 +86,47 @@ public class WebSocket {
 			st.setString(2, configName);
 			System.out.println(st.toString());
 			try {
-			ResultSet rs = st.executeQuery();
+				ResultSet rs = st.executeQuery();
 			
-			boolean rsNotEmpty = rs.next();
-			if (rsNotEmpty == true)
-			{
-			   String rsDataRaw = rs.getString(2);
-			   JSONObject rsData = new JSONObject(rsDataRaw);
-			   System.out.println("SELECT result: " + rsDataRaw);
+				boolean rsNotEmpty = rs.next();
+				if (rsNotEmpty == true) {
+					String rsDataRaw = rs.getString(2);
+					JSONObject rsData = new JSONObject(rsDataRaw);
+					System.out.println("SELECT result: " + rsDataRaw);
 			   
-			   // start composing answer (outgoing)
+					// start composing answer (outgoing)
 			   
-			   JSONObject outgoing = new JSONObject();
-			   outgoing.put("query", query);
+					JSONObject outgoing = new JSONObject();
+					outgoing.put("query", query);
 			   
-			   String rsHash = String.valueOf(rsDataRaw.hashCode());
+					String rsHash = String.valueOf(rsDataRaw.hashCode());
 			   
-			   if (rsHash.equals(hash)) {
-				   outgoing.put("content", "alreadyUpToDate");
-			   } else {
-				   JSONObject content = new JSONObject();
-				   content.put("DATA", rsData);
-				   content.put("HASH", rsHash);
-				   outgoing.put("content", content);
-			   }
+					if (rsHash.equals(hash)) {
+						outgoing.put("content", "alreadyUpToDate");
+					} else {
+						JSONObject content = new JSONObject();
+						content.put("DATA", rsData);
+						content.put("HASH", rsHash);
+						outgoing.put("content", content);
+					}
 			   
-			   // finish composing answer
+					// finish composing answer
 			   
-			   // send answer
-			   JSONArray outgoingAsAnArray = new JSONArray();
-			   outgoingAsAnArray.put(outgoing);
-			   trace.sendMessage(outgoingAsAnArray);
+					// send answer
+					JSONArray outgoingAsAnArray = new JSONArray();
+			   		outgoingAsAnArray.put(outgoing);
+			   		trace.sendMessage(outgoingAsAnArray);
 			   
-			} else {
-				// send answer: NO results
-				JSONObject outgoing = new JSONObject();
-				outgoing.put("query", query);
-				outgoing.put("content", "negative");
+				} else {
+					// send answer: NO results
+					JSONObject outgoing = new JSONObject();
+					outgoing.put("query", query);
+					outgoing.put("content", "negative");
 				JSONArray outgoingAsAnArray = new JSONArray();
-				outgoingAsAnArray.put(outgoing);
-				trace.sendMessage(outgoingAsAnArray);
-			}
-			rs.close();
+					outgoingAsAnArray.put(outgoing);
+					trace.sendMessage(outgoingAsAnArray);
+				}
+				rs.close();
 			} catch (SQLException e) {
 				System.out.println("subscribeToConfig: SQLException");
 				e.printStackTrace();
